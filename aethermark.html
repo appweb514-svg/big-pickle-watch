@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Aethermark — L'horlogerie mécanique réinventée</title>
+<meta name="description" content="Aethermark. Le mouvement perpétuel au poignet. Œuvre d'horlogerie steampunk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1a1410;--bg-deep:#0f0a08;--brass:#c9a85c;--brass-bright:#e8c878;--brass-dark:#8a6e30;
+  --copper:#b8732d;--leather:#3a2010;--ivory:#f5ecd9;--rust:#8b4513;--ember:#ff6b1a;
+  --steam:rgba(245,236,217,.08);--gold-line:rgba(201,168,92,.15);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg-deep);color:var(--ivory);
+  font-family:'Cormorant Garamond',serif;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse at top,rgba(201,168,92,.04),transparent 60%),
+    radial-gradient(ellipse at bottom,rgba(139,69,19,.03),transparent 60%);
+}
+::selection{background:rgba(201,168,92,.2);color:var(--brass-bright)}
+a{text-decoration:none;color:inherit}
+img{max-width:100%}
+
+/* ========== LOADING ========== */
+#loading{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg-deep);transition:opacity 1s
+}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading .cog{
+  width:48px;height:48px;border:2px solid var(--brass);
+  border-radius:50%;
+  border-top-color:transparent;
+  animation:spin 1.2s linear infinite;
+  margin-bottom:2rem
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading .brand-name{
+  font-family:'Cinzel',serif;font-size:1.5rem;font-weight:500;
+  letter-spacing:.45em;color:var(--brass);
+  padding-left:.45em
+}
+#loading .tagline{
+  margin-top:.5rem;font-size:.7rem;letter-spacing:.3em;
+  text-transform:uppercase;color:rgba(245,236,217,.25);
+  font-family:'Cinzel',serif
+}
+
+/* ========== NAVIGATION ========== */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:1.25rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:all .5s ease;
+  border-bottom:1px solid transparent
+}
+nav.scrolled{
+  background:rgba(15,10,8,.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--gold-line);
+  padding:.875rem 2rem
+}
+nav .logo{
+  font-family:'Cinzel',serif;font-size:.85rem;font-weight:600;
+  letter-spacing:.35em;color:var(--brass);
+  padding-left:.35em;transition:all .3s
+}
+nav .logo:hover{color:var(--brass-bright);text-shadow:0 0 20px rgba(201,168,92,.3)}
+nav .links{display:none;gap:2.5rem}
+@media(min-width:768px){nav .links{display:flex}}
+nav .links a{
+  font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(245,236,217,.4);
+  transition:all .3s;position:relative;padding:.5rem 0
+}
+nav .links a::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:1px;background:var(--brass);transform:scaleX(0);
+  transform-origin:center;transition:transform .4s ease
+}
+nav .links a:hover{color:var(--brass-bright)}
+nav .links a:hover::after{transform:scaleX(1)}
+.nav-progress{position:absolute;bottom:0;left:0;right:0;height:1px;background:rgba(201,168,92,.05)}
+.nav-progress-inner{height:100%;width:0;background:linear-gradient(90deg,var(--brass-dark),var(--brass-bright),var(--brass-dark));transition:width .15s}
+.menu-btn{
+  display:flex;flex-direction:column;gap:5px;
+  background:none;border:none;cursor:pointer;padding:8px
+}
+@media(min-width:768px){.menu-btn{display:none}}
+.menu-btn span{display:block;width:20px;height:1px;background:var(--brass);transition:all .3s}
+.menu-btn.active span:nth-child(1){transform:rotate(45deg) translateY(6px)}
+.menu-btn.active span:nth-child(2){opacity:0}
+.menu-btn.active span:nth-child(3){transform:rotate(-45deg) translateY(-6px)}
+
+#mobile-menu{
+  position:fixed;inset:0;z-index:90;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(15,10,8,.97);backdrop-filter:blur(40px)
+}
+#mobile-menu.open{display:flex}
+#mobile-menu a{
+  font-family:'Cinzel',serif;font-size:1.4rem;letter-spacing:.25em;
+  text-transform:uppercase;color:var(--brass);
+  margin:.75rem 0;transition:color .3s
+}
+#mobile-menu a:hover{color:var(--brass-bright)}
+
+/* ========== HERO ========== */
+#three-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+section{position:relative;z-index:5;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1.5rem}
+
+#hero{pointer-events:none}
+#hero *{pointer-events:auto}
+#hero-content{
+  text-align:center;max-width:48rem;
+  opacity:0;transform:translateY(40px) scale(.97);
+  transition:opacity 1.2s ease,transform 1.2s ease
+}
+#hero-content.visible{opacity:1;transform:translateY(0) scale(1)}
+
+.hero-eyebrow{
+  font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.5em;
+  text-transform:uppercase;color:var(--brass);
+  margin-bottom:2rem;padding-left:.5em
+}
+.hero-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(3rem,10vw,7rem);font-weight:500;
+  color:var(--ivory);letter-spacing:.05em;
+  margin-bottom:.25rem;line-height:1
+}
+.hero-title em{
+  font-style:normal;font-family:'Cormorant Garamond',serif;
+  display:block;font-size:clamp(1rem,2.5vw,1.5rem);
+  font-weight:300;letter-spacing:.35em;text-transform:uppercase;
+  color:var(--brass);margin-top:1.5rem
+}
+.hero-sub{
+  font-size:clamp(1.05rem,2vw,1.35rem);font-weight:300;
+  color:rgba(245,236,217,.5);
+  max-width:32rem;margin:2.5rem auto 3rem;
+  line-height:1.7;font-style:italic
+}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:1rem;
+  padding:1rem 2.5rem;
+  font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--brass-bright);
+  border:1px solid var(--brass-dark);
+  background:linear-gradient(135deg,rgba(201,168,92,.06),rgba(184,115,45,.04));
+  backdrop-filter:blur(8px);position:relative;overflow:hidden;
+  transition:all .5s ease
+}
+.hero-cta::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(201,168,92,.12),rgba(184,115,45,.08));
+  opacity:0;transition:opacity .5s
+}
+.hero-cta:hover::before{opacity:1}
+.hero-cta:hover{border-color:var(--brass);box-shadow:0 0 40px rgba(201,168,92,.15)}
+.hero-cta span{position:relative;z-index:1}
+.hero-cta .arrow{
+  width:14px;height:1px;background:var(--brass);
+  position:relative;transition:all .3s
+}
+.hero-cta .arrow::after{
+  content:'';position:absolute;right:0;top:-3px;
+  width:7px;height:7px;
+  border-right:1px solid var(--brass);
+  border-top:1px solid var(--brass);
+  transform:rotate(45deg)
+}
+.hero-cta:hover .arrow{width:20px}
+
+.scroll-indicator{
+  position:absolute;bottom:3rem;left:50%;transform:translateX(-50%);
+  opacity:0;transition:opacity 1s
+}
+.scroll-indicator.visible{opacity:1}
+.scroll-gear{
+  width:28px;height:28px;border:1px solid var(--brass);border-radius:50%;
+  position:relative;animation:spin 3s linear infinite
+}
+.scroll-gear::before{
+  content:'';position:absolute;inset:4px;
+  border:1px solid rgba(201,168,92,.3);border-radius:50%
+}
+.scroll-text{
+  margin-top:1rem;font-family:'Cinzel',serif;font-size:.55rem;
+  letter-spacing:.3em;text-transform:uppercase;color:rgba(245,236,217,.2)
+}
+
+/* ========== SECTION TITLES ========== */
+.section-label{
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.4em;
+  text-transform:uppercase;color:var(--brass);margin-bottom:1.5rem;
+  opacity:0;transform:translateY(15px);transition:all .6s ease
+}
+.section-label::before,.section-label::after{
+  content:'';display:inline-block;width:40px;height:1px;
+  background:var(--brass);vertical-align:middle;margin:0 1rem;opacity:.4
+}
+.section-label.visible{opacity:1;transform:translateY(0)}
+.section-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(2rem,5vw,3.5rem);font-weight:400;
+  color:var(--ivory);letter-spacing:.05em;
+  margin-bottom:3rem;opacity:0;transform:translateY(25px);
+  transition:all .8s ease
+}
+.section-title.visible{opacity:1;transform:translateY(0)}
+.section-title em{
+  font-style:italic;font-family:'Cormorant Garamond',serif;
+  color:var(--brass);font-weight:300
+}
+
+/* ========== ORIGIN ========== */
+.origin-grid{
+  display:grid;grid-template-columns:1fr;gap:2rem;margin-top:3rem;
+  max-width:72rem
+}
+@media(min-width:968px){.origin-grid{grid-template-columns:repeat(3,1fr)}}
+.origin-card{
+  position:relative;padding:2.5rem;border:1px solid var(--gold-line);
+  background:linear-gradient(180deg,rgba(201,168,92,.03),rgba(15,10,8,.4));
+  backdrop-filter:blur(10px);
+  opacity:0;transform:translateY(35px);
+  transition:all .8s ease,box-shadow .4s
+}
+.origin-card.visible{opacity:1;transform:translateY(0)}
+.origin-card:hover{box-shadow:0 8px 40px rgba(201,168,92,.08);border-color:rgba(201,168,92,.3)}
+.origin-card .numeral{
+  font-family:'Cinzel',serif;font-size:3rem;font-weight:400;
+  color:rgba(201,168,92,.12);margin-bottom:1.5rem;line-height:1
+}
+.origin-card h3{
+  font-family:'Cinzel',serif;font-size:1.15rem;font-weight:500;
+  color:var(--brass-bright);margin-bottom:1rem;letter-spacing:.05em
+}
+.origin-card p{
+  font-size:1.05rem;font-weight:300;
+  color:rgba(245,236,217,.5);line-height:1.8
+}
+.origin-card .ornament{
+  position:absolute;top:1rem;right:1rem;
+  width:24px;height:24px;opacity:.15
+}
+.origin-card .ornament svg{width:100%;height:100%;fill:var(--brass)}
+
+/* ========== FEATURES ========== */
+.features-grid{
+  display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:3rem;
+  max-width:72rem
+}
+@media(min-width:768px){.features-grid{grid-template-columns:repeat(2,1fr)}}
+.feature{
+  position:relative;padding:2.5rem;
+  border:1px solid var(--gold-line);
+  background:rgba(15,10,8,.3);backdrop-filter:blur(10px);overflow:hidden;
+  opacity:0;transform:translateY(25px);
+  transition:all .7s ease,border-color .4s,box-shadow .4s
+}
+.feature.visible{opacity:1;transform:translateY(0)}
+.feature:hover{border-color:rgba(201,168,92,.25);box-shadow:0 4px 30px rgba(201,168,92,.08)}
+.feature .flare{
+  position:absolute;inset:0;opacity:0;
+  background:radial-gradient(ellipse at 70% 30%,rgba(201,168,92,.06),transparent 70%);
+  transition:opacity .5s
+}
+.feature:hover .flare{opacity:1}
+.feature-gear{
+  width:36px;height:36px;margin-bottom:1.5rem;
+  color:var(--brass);opacity:.5;transition:all .4s
+}
+.feature:hover .feature-gear{opacity:1;transform:rotate(45deg)}
+.feature h3{
+  font-family:'Cinzel',serif;font-size:1.15rem;font-weight:500;
+  color:var(--brass-bright);margin-bottom:.75rem;letter-spacing:.03em
+}
+.feature p{
+  font-size:1rem;font-weight:300;
+  color:rgba(245,236,217,.45);line-height:1.75
+}
+
+/* ========== SPECS ========== */
+.specs-grid{
+  display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:3rem;
+  max-width:72rem
+}
+@media(min-width:640px){.specs-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.specs-grid{grid-template-columns:repeat(3,1fr)}}
+.spec-card{
+  padding:2rem;border:1px solid var(--gold-line);
+  background:rgba(15,10,8,.4);backdrop-filter:blur(8px);
+  opacity:0;transform:translateY(20px);
+  transition:all .6s ease
+}
+.spec-card.visible{opacity:1;transform:translateY(0)}
+.spec-card h3{
+  font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--brass);
+  margin-bottom:1.5rem;padding-bottom:1rem;
+  border-bottom:1px solid var(--gold-line)
+}
+.spec-row{display:flex;justify-content:space-between;padding:.5rem 0;align-items:center}
+.spec-row dt{
+  font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  font-family:'Cinzel',serif;color:rgba(245,236,217,.3)
+}
+.spec-row dd{
+  font-size:.9rem;font-weight:400;font-family:'Cormorant Garamond',serif;
+  color:rgba(245,236,217,.75);text-align:right
+}
+
+/* ========== CTA ========== */
+#buy{text-align:center}
+#cta-content{
+  opacity:0;transform:scale(.95);
+  transition:all 1s ease
+}
+#cta-content.visible{opacity:1;transform:scale(1)}
+#cta-content h2{
+  font-family:'Cinzel',serif;
+  font-size:clamp(2rem,5vw,4rem);font-weight:500;
+  color:var(--ivory);letter-spacing:.05em;margin-bottom:1.5rem;line-height:1.2
+}
+.gradient-brass{
+  background:linear-gradient(135deg,var(--brass-dark),var(--brass-bright),var(--brass-dark));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+}
+#cta-content p{
+  font-size:1.1rem;font-weight:300;font-style:italic;
+  color:rgba(245,236,217,.4);margin-bottom:3rem
+}
+.cta-buttons{display:flex;flex-direction:column;align-items:center;gap:1.25rem}
+@media(min-width:480px){.cta-buttons{flex-direction:row;justify-content:center}}
+.btn-primary{
+  padding:1rem 2.5rem;
+  font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--bg-deep);background:linear-gradient(135deg,var(--brass-dark),var(--brass-bright));
+  border:none;cursor:pointer;transition:all .4s;
+  box-shadow:0 4px 24px rgba(201,168,92,.15)
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(201,168,92,.3)}
+.btn-secondary{
+  padding:1rem 2.5rem;
+  font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--brass);background:transparent;
+  border:1px solid var(--brass-dark);cursor:pointer;
+  transition:all .3s
+}
+.btn-secondary:hover{background:rgba(201,168,92,.05);border-color:var(--brass)}
+.cta-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;
+  max-width:24rem;margin:4rem auto 0;opacity:0;transition:opacity 1s
+}
+.cta-stats.visible{opacity:1}
+.cta-stat{text-align:center}
+.cta-stat .val{
+  font-family:'Cinzel',serif;font-size:1.5rem;font-weight:500;
+  color:var(--brass-bright)
+}
+.cta-stat .lbl{
+  margin-top:.5rem;font-family:'Cinzel',serif;font-size:.55rem;
+  letter-spacing:.25em;text-transform:uppercase;color:rgba(245,236,217,.2)
+}
+
+/* ========== FOOTER ========== */
+footer{
+  position:relative;z-index:5;
+  border-top:1px solid var(--gold-line);
+  padding:2.5rem 1.5rem;text-align:center;
+  background:rgba(15,10,8,.5)
+}
+footer .inner{max-width:72rem;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:1rem}
+@media(min-width:768px){footer .inner{flex-direction:row;justify-content:space-between}}
+footer .brand{
+  font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--brass)
+}
+footer .links{display:flex;gap:2rem}
+footer .links a{
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(245,236,217,.2);transition:color .3s
+}
+footer .links a:hover{color:var(--brass)}
+footer .copy{font-size:.55rem;letter-spacing:.1em;color:rgba(245,236,217,.1);font-family:'Cinzel',serif}
+
+/* ========== DECOR AGES ========== */
+.deco-line{
+  height:1px;margin:3em auto;max-width:200px;
+  background:linear-gradient(90deg,transparent,var(--brass),transparent);opacity:.25
+}
+.ornament-divider{
+  text-align:center;margin:3rem 0;opacity:.2
+}
+.ornament-divider svg{width:40px;height:40px;fill:var(--brass)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="cog"></div>
+  <div class="brand-name">AETHERMARK</div>
+  <div class="tagline">Horlogerie Mécanique</div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">AETHERMARK</a>
+  <div class="links">
+    <a href="#origin">Origine</a>
+    <a href="#features">Mécanisme</a>
+    <a href="#specs">Spécifications</a>
+    <a href="#buy">Acquérir</a>
+  </div>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-progress"><div class="nav-progress-inner" id="navProgress"></div></div>
+</nav>
+
+<div id="mobile-menu">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+    <a href="#origin" onclick="closeMenu()">Origine</a>
+    <a href="#features" onclick="closeMenu()">Mécanisme</a>
+    <a href="#specs" onclick="closeMenu()">Spécifications</a>
+    <a href="#buy" onclick="closeMenu()">Acquérir</a>
+  </div>
+</div>
+
+<!-- THREE.JS CANVAS -->
+<div id="three-canvas"></div>
+
+<!-- HERO -->
+<section id="hero">
+  <div id="hero-content">
+    <p class="hero-eyebrow">Maison d'Horlogerie depuis 1887</p>
+    <h1 class="hero-title">Aethermark<em>Le Mouvement Perpétuel</em></h1>
+    <p class="hero-sub">Là où l'ingénierie victorienne rencontre l'élégance éternelle. Chaque rouage, une œuvre. Chaque tik-tak, un battement.</p>
+    <a href="#origin" class="hero-cta">
+      <span>Découvrir l'œuvre</span>
+      <span class="arrow"></span>
+    </a>
+  </div>
+  <div class="scroll-indicator" id="scrollInd">
+    <div class="scroll-gear"></div>
+    <div class="scroll-text">Explorer</div>
+  </div>
+</section>
+
+<!-- ORIGIN -->
+<section id="origin">
+  <div style="max-width:72rem;width:100%">
+    <p class="section-label" data-reveal>L'Origine</p>
+    <h2 class="section-title" data-reveal>Née d'une <em>obsession mécanique</em></h2>
+    <div class="origin-grid">
+      <div class="origin-card" data-reveal>
+        <div class="ornament"><svg viewBox="0 0 24 24"><path d="M12 2L14 8H20L15 12L17 18L12 14L7 18L9 12L4 8H10z"/></svg></div>
+        <div class="numeral">I.</div>
+        <h3>La Genèse</h3>
+        <p>Dans les ateliers enfumés de Birmingham, 1887, un horloger visionnaire dessina un mouvement qui défiait les lois de la gravité. Unmécanisme si précis qu'il transcende le temps.</p>
+      </div>
+      <div class="origin-card" data-reveal style="transition-delay:.15s">
+        <div class="ornament"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg></div>
+        <div class="numeral">II.</div>
+        <h3>L'Artisanat</h3>
+        <p>Chaque composant est façonné à la main par des maîtres-horlogers. Le laiton est poli pendant 40 heures. Les rubis sont taillés au saphir. Le cuir vieillit comme le grand cru.</p>
+      </div>
+      <div class="origin-card" data-reveal style="transition-delay:.3s">
+        <div class="ornament"><svg viewBox="0 0 24 24"><path d="M12 2v8M12 14v8M2 12h8M14 12h8" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>
+        <div class="numeral">III.</div>
+        <h3>L'Héritage</h3>
+        <p>Trois siècles de savoir-faire, transmis de génération en génération. Chaque Aethermark porte le numéro de son horloger, gravé à la main sur le fond du boîtier.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div style="max-width:72rem;width:100%">
+    <p class="section-label" data-reveal>Le Mécanisme</p>
+    <h2 class="section-title" data-reveal>L'ingénierie <em>au cœur</em></h2>
+    <div class="features-grid">
+      <div class="feature" data-reveal>
+        <div class="flare"></div>
+        <svg class="feature-gear" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="14" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="6" stroke="currentColor" stroke-width="1"/><path d="M18 2v5M18 29v5M2 18h5M29 18h5" stroke="currentColor" stroke-width="1.5"/><path d="M6 6l4 4M26 6l-4 4M6 30l4-4M26 30l-4-4" stroke="currentColor" stroke-width="1"/></svg>
+        <h3>Mouvement Tourbillon</h3>
+        <p>Un tourbillon volant à double axe compense l'effet de la gravité. 21600 alternances par heure. Précision de chronomètre certifiée COSC, visible à l'œil nu.</p>
+      </div>
+      <div class="feature" data-reveal style="transition-delay:.1s">
+        <div class="flare"></div>
+        <svg class="feature-gear" viewBox="0 0 36 36" fill="none"><path d="M18 4C10.5 4 4.5 10.5 4.5 18c0 2 1.5 3.5 3.5 3.5s3.5-1.5 3.5-3.5c0-3.5 3-6.5 6.5-6.5" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="5" stroke="currentColor" stroke-width="1"/><path d="M18 25v8" stroke="currentColor" stroke-width="1.5"/></svg>
+        <h3>Réserve de Marche</h3>
+        <p>120 heures d'autonomie. Deux barillets coaxiaux en laiton, montés en série. Un indicateur de réserve visible à 6 heures, avec une aiguille en forme d'ancre.</p>
+      </div>
+      <div class="feature" data-reveal style="transition-delay:.2s">
+        <div class="flare"></div>
+        <svg class="feature-gear" viewBox="0 0 36 36" fill="none"><rect x="6" y="6" width="24" height="24" rx="3" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="7" stroke="currentColor" stroke-width="1"/><circle cx="18" cy="18" r="2" fill="currentColor" opacity=".5"/><path d="M18 6V9M18 27V30M6 18h3M27 18h3" stroke="currentColor" stroke-width="1.5"/></svg>
+        <h3>Aiguilles Éclairées</h3>
+        <p>Aiguilles squelette en laiton doré avec revêtement Super-LumiNova couleur ambre. Visibilité nocturne inspirée des lanternes de la Tour Eiffel, 1889.</p>
+      </div>
+      <div class="feature" data-reveal style="transition-delay:.3s">
+        <div class="flare"></div>
+        <svg class="feature-gear" viewBox="0 0 36 36" fill="none"><path d="M8 8h20v20H8z" stroke="currentColor" stroke-width="1.5"/><path d="M12 12c0 4 3 6 6 6s6 2 6 6" stroke="currentColor" stroke-width="1"/><circle cx="18" cy="18" r="2" fill="currentColor" opacity=".4"/><path d="M14 8V6M22 8V6M14 30V28M22 30V28" stroke="currentColor" stroke-width="1"/></svg>
+        <h3>Boîtier Laiton&Verre Saphir</h3>
+        <p>Boîtier en laiton patiné main, 45mm de diamètre. Verre saphir bombé avec traitement antireflet bleuté. Fond ouvert affichant le mouvement dans toute sa splendeur.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPECS -->
+<section id="specs">
+  <div style="max-width:72rem;width:100%">
+    <p class="section-label" data-reveal>Spécifications Horlogères</p>
+    <h2 class="section-title" data-reveal>Les <em>rouages</em> du temps</h2>
+    <div class="specs-grid">
+      <div class="spec-card" data-reveal>
+        <h3>Mouvement</h3>
+        <dl>
+          <div class="spec-row"><dt>Calibre</dt><dd>Aether MK-IV</dd></div>
+          <div class="spec-row"><dt>Type</dt><dd>Mécanique à remontage manuel</dd></div>
+          <div class="spec-row"><dt>Fréquence</dt><dd>21 600 A/h</dd></div>
+          <div class="spec-row"><dt>Rubis</dt><dd>21 pierres</dd></div>
+          <div class="spec-row"><dt>Certification</dt><dd>COSC Chronomètre</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card" data-reveal style="transition-delay:.1s">
+        <h3>Boîtier</h3>
+        <dl>
+          <div class="spec-row"><dt>Matériau</dt><dd>Laiton patiné main</dd></div>
+          <div class="spec-row"><dt>Diamètre</dt><dd>45 mm</dd></div>
+          <div class="spec-row"><dt>Épaisseur</dt><dd>13.2 mm</dd></div>
+          <div class="spec-row"><dt>Verre</dt><dd>Saphir bombé AR</dd></div>
+          <div class="spec-row"><dt>Fond</dt><dd>Saphir — mouvement visible</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card" data-reveal style="transition-delay:.2s">
+        <h3>Fonctions</h3>
+        <dl>
+          <div class="spec-row"><dt>Heures</dt><dd>Squelette central</dd></div>
+          <div class="spec-row"><dt>Minutes</dt><dd>Contour du cadran</dd></div>
+          <div class="spec-row"><dt>Secondes</dt><dd>Petite seconde à 6h</dd></div>
+          <div class="spec-row"><dt>Réserve</dt><dd>Indicateur à 9h</dd></div>
+          <div class="spec-row"><dt>Tourbillon</dt><dd>Volant à 12h</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card" data-reveal style="transition-delay:.3s">
+        <h3>Bracelet</h3>
+        <dl>
+          <div class="spec-row"><dt>Matériau</dt><dd>Cuir de veau vieilli</dd></div>
+          <div class="spec-row"><dt>Couleur</dt><dd>Brun antique</dd></div>
+          <div class="spec-row"><dt>Fermoir</dt><dd>Boucle ardillon laiton</dd></div>
+          <div class="spec-row"><dt>Largeur</dt><dd>22 mm</dd></div>
+          <div class="spec-row"><dt>Rivets</dt><dd>Laiton patiné</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card" data-reveal style="transition-delay:.4s">
+        <h3>Résistance</h3>
+        <dl>
+          <div class="spec-row"><dt>Étanchéité</dt><dd>30 m (3 ATM)</dd></div>
+          <div class="spec-row"><dt>Choc</dt><dd>4 800 G</dd></div>
+          <div class="spec-row"><dt>Champ magn.</dt><dd>4 800 A/m</dd></div>
+          <div class="spec-row"><dt>Température</dt><dd>-10 à +60 °C</dd></div>
+          <div class="spec-row"><dt>Garantie</dt><dd>5 ans internationale</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card" data-reveal style="transition-delay:.5s">
+        <h3>Exclusivité</h3>
+        <dl>
+          <div class="spec-row"><dt>Édition</dt><dd>188 pièces numérotées</dd></div>
+          <div class="spec-row"><dt>Numérotation</dt><dd>Gravée main au fond</dd></div>
+          <div class="spec-row"><dt>Coffret</dt><dd>Bois d'ébène sculpté</dd></div>
+          <div class="spec-row"><dt>Certificat</dt><dd>Parchemin signé</dd></div>
+          <div class="spec-row"><dt>Entretien</dt><dd>Révision 7 ans offerte</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="buy">
+  <div id="cta-content">
+    <p class="section-label" data-reveal>Disponible en commande</p>
+    <h2 data-reveal>Le temps <br><span class="gradient-brass">n'attend plus</span></h2>
+    <p data-reveal>À partir de 2 400 €. Gravure personnalisée offerte.<br>Édition limitée — 188 pièces numérotées dans le monde.</p>
+    <div class="cta-buttons" data-reveal>
+      <button class="btn-primary">Commander →</button>
+      <button class="btn-secondary">Voir le film ▶</button>
+    </div>
+    <div class="cta-stats" id="ctaStats">
+      <div class="cta-stat"><div class="val">120h</div><div class="lbl">Réserve</div></div>
+      <div class="cta-stat"><div class="val">45mm</div><div class="lbl">Boîtier</div></div>
+      <div class="cta-stat"><div class="val">21</div><div class="lbl">Rubis</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="inner">
+    <div class="brand">Aethermark — Maison d'Horlogerie</div>
+    <div class="links">
+      <a href="#">Confidentialité</a>
+      <a href="#">Conditions</a>
+      <a href="#">Assistance</a>
+    </div>
+    <div class="copy">© 1887–2026 Aethermark. Tous droits réservés.</div>
+  </div>
+</footer>
+
+<!-- SCRIPT -->
+<script>
+// ============================================================
+//  LOADING
+// ============================================================
+(function(){
+  const w=document.getElementById('loading');
+  setTimeout(()=>w.classList.add('hidden'),1400);
+})();
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+(function(){
+  const nav=document.querySelector('nav');
+  const prog=document.getElementById('navProgress');
+  const mb=document.getElementById('menuBtn');
+  const mm=document.getElementById('mobile-menu');
+  window.addEventListener('scroll',()=>{
+    const y=window.scrollY;
+    nav.classList.toggle('scrolled',y>50);
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(max>0?(y/max)*100:0)+'%';
+  });
+  mb.addEventListener('click',()=>{mb.classList.toggle('active');mm.classList.toggle('open')});
+  window.closeMenu=()=>{mb.classList.remove('active');mm.classList.remove('open')};
+})();
+
+// ============================================================
+//  SCROLL REVEAL
+// ============================================================
+(function(){
+  const els=document.querySelectorAll('[data-reveal]');
+  const hc=document.getElementById('hero-content');
+  const si=document.getElementById('scrollInd');
+  const cc=document.getElementById('cta-content');
+  const cs=document.getElementById('ctaStats');
+  const obs=new IntersectionObserver(es=>{
+    es.forEach(e=>{
+      if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}
+    })
+  },{threshold:.15,rootMargin:'0px 0px -60px 0px'});
+  els.forEach(el=>obs.observe(el));
+  setTimeout(()=>hc.classList.add('visible'),400);
+  setTimeout(()=>si.classList.add('visible'),3000);
+
+  const co=new IntersectionObserver(es=>{
+    es.forEach(e=>{
+      if(e.isIntersecting){
+        cc.classList.add('visible');
+        setTimeout(()=>cs.classList.add('visible'),400);
+        co.unobserve(e.target)
+      }
+    })
+  },{threshold:.3});
+  co.observe(cc);
+})();
+
+// ============================================================
+//  THREE.JS — AETHERMARK STEAMPUNK WATCH
+// ============================================================
+(function(){
+  const container=document.getElementById('three-canvas');
+  if(!container||typeof THREE==='undefined')return;
+
+  let W=window.innerWidth,H=window.innerHeight;
+  const scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0x1a1410,9,18);
+  scene.background=new THREE.Color(0x1a1410);
+
+  const camera=new THREE.PerspectiveCamera(32,W/H,0.1,30);
+  camera.position.set(0,0,6);
+
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.1;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  container.appendChild(renderer.domElement);
+
+  // ── Lighting ── warm amber + brass rim ──
+  scene.add(new THREE.AmbientLight(0x3a2218,0.4));
+  const key=new THREE.DirectionalLight(0xffd9a0,2.2);
+  key.position.set(4,6,8);scene.add(key);
+  const fill=new THREE.DirectionalLight(0xc9a85c,0.6);
+  fill.position.set(-5,-2,5);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xff8b3d,0.5);
+  rim.position.set(0,-5,-6);scene.add(rim);
+  const spark=new THREE.PointLight(0xff6b1a,0.8,6);
+  spark.position.set(0,0,3);scene.add(spark);
+  const spark2=new THREE.PointLight(0xffe8c8,0.4,5);
+  spark2.position.set(-2,2,2);scene.add(spark2);
+
+  // ── Materials ──
+  const M={
+    brass:new THREE.MeshPhysicalMaterial({color:0xc9a85c,metalness:0.8,roughness:0.3,envMapIntensity:1.5,clearcoat:0.3,clearcoatRoughness:0.3}),
+    brassBright:new THREE.MeshPhysicalMaterial({color:0xe8c878,metalness:0.85,roughness:0.2,envMapIntensity:1.8,clearcoat:0.4}),
+    brassDark:new THREE.MeshPhysicalMaterial({color:0x8a6e30,metalness:0.78,roughness:0.4,envMapIntensity:1.0}),
+    brassAged:new THREE.MeshPhysicalMaterial({color:0x6a5020,metalness:0.6,roughness:0.65,envMapIntensity:0.7}),
+    copper:new THREE.MeshPhysicalMaterial({color:0xb8732d,metalness:0.82,roughness:0.28,envMapIntensity:1.5,clearcoat:0.25}),
+    steel:new THREE.MeshPhysicalMaterial({color:0x556070,metalness:0.88,roughness:0.15,envMapIntensity:1.6}),
+    steelDark:new THREE.MeshPhysicalMaterial({color:0x2a3040,metalness:0.82,roughness:0.25,envMapIntensity:1.0}),
+    ruby:new THREE.MeshPhysicalMaterial({color:0xcc2244,metalness:0.1,roughness:0.05,emissive:0x881122,emissiveIntensity:0.35,envMapIntensity:2.5,clearcoat:0.9}),
+    ivory:new THREE.MeshPhysicalMaterial({color:0xf5ecd9,emissive:0x88774a,emissiveIntensity:0.08,metalness:0.1,roughness:0.5}),
+    goldLume:new THREE.MeshPhysicalMaterial({color:0xe8c878,emissive:0xddaa44,emissiveIntensity:0.15,metalness:0.4,roughness:0.5}),
+    dial:new THREE.MeshPhysicalMaterial({color:0x1a1410,metalness:0.35,roughness:0.75,envMapIntensity:0.4}),
+    leather:new THREE.MeshPhysicalMaterial({color:0x3a2010,metalness:0.0,roughness:0.95,envMapIntensity:0.05}),
+    glass:new THREE.MeshPhysicalMaterial({color:0xaaccff,metalness:0,roughness:0,transparent:true,opacity:0.06,envMapIntensity:1.5,side:THREE.DoubleSide,depthWrite:false})
+  };
+
+  const watch=new THREE.Group();
+  scene.add(watch);
+
+  // ── Strap ──
+  function makeStrapsegment(y,mat){
+    const g=new THREE.Group();
+    for(let i=0;i<3;i++){
+      const seg=new THREE.Mesh(new THREE.BoxGeometry(1.25,0.5,0.13),mat);
+      seg.position.y=y+i*0.52;
+      g.add(seg);
+      for(let s=-1;s<=1;s+=2){
+        const rivet=new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8),M.brassAged);
+        rivet.position.set(s*0.5,y+i*0.52,0.09);
+        g.add(rivet);
+      }
+    }
+    return g;
+  }
+  watch.add(makeStrapsegment(0.85,M.leather));
+  watch.add(makeStrapsegment(-2.41,M.leather));
+
+  // ── Lugs ──
+  [[-0.55,0.85],[0.55,0.85],[-0.55,-0.85],[0.55,-0.85]].forEach(([x,y])=>{
+    const lug=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.25,0.22),M.brassDark);
+    lug.position.set(x,y,0);watch.add(lug);
+  });
+
+  // ── Case ──
+  const backPlate=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,0.12,40),M.brassAged);
+  backPlate.rotation.x=Math.PI/2;backPlate.position.z=-0.3;
+  watch.add(backPlate);
+
+  const caseMid=new THREE.Mesh(new THREE.CylinderGeometry(1.18,1.22,0.28,40),M.brassDark);
+  caseMid.rotation.x=Math.PI/1;watch.add(caseMid);
+
+  const bezel=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.1,16,48),M.brass);
+  bezel.position.z=0.1;watch.add(bezel);
+
+  const bezelInner=new THREE.Mesh(new THREE.TorusGeometry(1.05,0.04,12,40),M.brassBright);
+  bezelInner.position.z=0.12;watch.add(bezelInner);
+
+  // Bezel screws (8)
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2;
+    const sc=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.06,8),M.steelDark);
+    sc.position.set(Math.sin(a)*1.2,Math.cos(a)*1.2,0.05);
+    sc.rotation.x=Math.PI/2;sc.rotation.z=a;
+    watch.add(sc);
+    // Screw slot
+    const slot=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.012,0.01),M.steel);
+    slot.position.set(Math.sin(a)*1.2,Math.cos(a)*1.2,0.085);
+    slot.rotation.z=a;watch.add(slot);
+  }
+
+  // ── Dial plate ──
+  const dialPlate2=new THREE.Mesh(new THREE.CircleGeometry(1.0,48),M.dial);
+  dialPlate2.position.z=0.05;watch.add(dialPlate2);
+
+  // Inner ring (guilloché effect via concentric rings)
+  for(let r=0.3;r<0.95;r+=0.07){
+    const ring=new THREE.Mesh(new THREE.RingGeometry(r,r+0.005,64),
+      new THREE.MeshPhysicalMaterial({color:0x2a1810,metalness:0.3,roughness:0.7,side:THREE.DoubleSide,transparent:true,opacity:0.4}));
+    ring.position.z=0.051;watch.add(ring);
+  }
+
+  // ── Hour markers (Roman-inspired luminous ticks) ──
+  for(let i=0;i<12;i++){
+    const a=(i/12)*Math.PI*2;
+    const card=[0,3,6,9].includes(i);
+    const len=card?0.09:0.06;
+    const wd=card?0.035:0.022;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(wd,len),M.goldLume);
+    m.position.set(Math.sin(a)*0.9,Math.cos(a)*0.9,0.06);
+    m.rotation.z=-a;watch.add(m);
+  }
+  // Minute ticks
+  for(let i=0;i<60;i++){
+    if(i%5===0)continue;
+    const a=(i/60)*Math.PI*2;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(0.01,0.025),
+      new THREE.MeshPhysicalMaterial({color:0x6a5020,metalness:0.5,roughness:0.5}));
+    m.position.set(Math.sin(a)*0.96,Math.cos(a)*0.96,0.06);
+    m.rotation.z=-a;watch.add(m);
+  }
+
+  // ── GEARS with real teeth ──
+  function makeGear(radius,teeth,thick,mat,spokes){
+    const g=new THREE.Group();
+    // Body ring with teeth via custom shape
+    const shape=new THREE.Shape();
+    const innerR=radius*0.75;
+    for(let i=0;i<teeth;i++){
+      const a1=(i/teeth)*Math.PI*2;
+      const a2=((i+0.35)/teeth)*Math.PI*2;
+      const a3=((i+0.65)/teeth)*Math.PI*2;
+      const a4=((i+1)/teeth)*Math.PI*2;
+      const rO=radius,rI=radius*0.88;
+      const p1x=Math.cos(a1)*rI,p1y=Math.sin(a1)*rI;
+      const p2x=Math.cos(a2)*rO,p2y=Math.sin(a2)*rO;
+      const p3x=Math.cos(a3)*rO,p3y=Math.sin(a3)*rO;
+      const p4x=Math.cos(a4)*rI,p4y=Math.sin(a4)*rI;
+      if(i===0)shape.moveTo(p1x,p1y);
+      shape.lineTo(p2x,p2y);
+      shape.lineTo(p3x,p3y);
+      shape.lineTo(p4x,p4y);
+    }
+    shape.closePath();
+    // Hole
+    const hole=new THREE.Path();
+    hole.absarc(0,0,innerR*0.3,0,Math.PI*2,true);
+    shape.holes.push(hole);
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:thick,bevelEnabled:true,bevelThickness:thick*0.15,bevelSize:thick*0.1,bevelSegments:2});
+    const gearMesh=new THREE.Mesh(geo,mat);
+    gearMesh.rotation.x=-Math.PI/2;
+    g.add(gearMesh);
+    // Spokes
+    const sc=spokes||4;
+    for(let i=0;i<sc;i++){
+      const a=(i/sc)*Math.PI+0.15;
+      const sp=new THREE.Mesh(new THREE.BoxGeometry(radius*0.55,thick*1.5,thick*0.5),mat);
+      sp.position.set(Math.cos(a)*radius*0.35,Math.sin(a)*radius*0.35,thick*0.25);
+      sp.rotation.z=a;g.add(sp);
+    }
+    // Center hub
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(radius*0.18,radius*0.18,thick*2,16),M.steel);
+    hub.rotation.x=Math.PI/2;hub.position.z=thick*0.3;
+    g.add(hub);
+    // Axle pin
+    const pin=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.12,8),M.steel);
+    pin.rotation.x=Math.PI/2;pin.position.z=thick*0.5;g.add(pin);
+    return g;
+  }
+
+  const gears=[];
+  // Main gear (center)
+  const g1=makeGear(0.52,28,0.04,M.brass,4);
+  g1.position.z=0.08;watch.add(g1);
+  gears.push({m:g1,s:0.12});
+  // Upper-left
+  const g2=makeGear(0.38,22,0.035,M.brassDark,3);
+  g2.position.set(-0.35,0.28,0.08);watch.add(g2);
+  gears.push({m:g2,s:-0.20});
+  // Upper-right (tourbillon position)
+  const g3=makeGear(0.30,18,0.03,M.copper,3);
+  g3.position.set(0.34,0.42,0.08);watch.add(g3);
+  gears.push({m:g3,s:0.30});
+  // Lower
+  const g4=makeGear(0.42,24,0.035,M.brassAged,4);
+  g4.position.set(0.18,-0.38,0.08);watch.add(g4);
+  gears.push({m:g4,s:-0.16});
+  // Small UR
+  const g5=makeGear(0.16,12,0.025,M.brassBright,3);
+  g5.position.set(-0.12,0.55,0.08);watch.add(g5);
+  gears.push({m:g5,s:0.42});
+  // Small LL
+  const g6=makeGear(0.14,10,0.022,M.brassDark,3);
+  g6.position.set(-0.50,-0.30,0.08);watch.add(g6);
+  gears.push({m:g6,s:-0.50});
+  // Medium right
+  const g7=makeGear(0.25,16,0.028,M.copper,3);
+  g7.position.set(0.52,-0.15,0.08);watch.add(g7);
+  gears.push({m:g7,s:0.28});
+
+  // ── Tourbillon cage (visible at 12h position) ──
+  const tbGroup=new THREE.Group();
+  const tbRing=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.015,10,24),M.brassBright);
+  tbGroup.add(tbRing);
+  const tbBrid=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.02,0.02),M.steel);
+  tbBrid.position.y=0;tbGroup.add(tbBrid);
+  const tbBrid2=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.22,0.02),M.steel);
+  tbGroup.add(tbBrid2);
+  const tbPinion=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.08,8),M.brassBright);
+  tbPinion.rotation.x=Math.PI/2;tbGroup.add(tbPinion);
+  tbGroup.position.set(0,0.42,0.12);
+  watch.add(tbGroup);
+  gears.push({m:tbGroup,s:0.8});
+
+  // ── Ruby jewels (bearings visible) ──
+  const jewelPositions=[[-0.15,0.50,0.1],[0.38,0.55,0.1],[-0.50,0.15,0.1],[0.48,-0.42,0.1]];
+  jewelPositions.forEach(p=>{
+    const ruby=new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12),M.ruby);
+    ruby.position.set(...p);watch.add(ruby);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.065,0.015,8,16),M.brassBright);
+    ring.position.set(...p);watch.add(ring);
+  });
+
+  // ── Power reserve sub-dial (9h) ──
+  const subDial=new THREE.Mesh(new THREE.CircleGeometry(0.22,32),M.dial);
+  subDial.position.set(-0.50,-0.50,0.06);watch.add(subDial);
+  const subRing=new THREE.Mesh(new THREE.TorusGeometry(0.22,0.018,10,28),M.brassDark);
+  subRing.position.set(-0.50,-0.50,0.06);watch.add(subRing);
+  // Reserve indicator hand
+  const resHand=new THREE.Mesh(new THREE.BoxGeometry(0.005,0.15,0.01),M.brassBright);
+  resHand.position.set(-0.50,-0.42,0.08);
+  resHand.rotation.z=0.4;watch.add(resHand);
+  // Reserve arc
+  for(let i=0;i<10;i++){
+    const a=Math.PI*(0.6+i*0.05);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(0.012,0.03),M.goldLume);
+    m.position.set(-0.50+Math.sin(a)*0.16,-0.50+Math.cos(a)*0.16,0.06);
+    m.rotation.z=-a;watch.add(m);
+  }
+
+  // ── Hands ──
+  function makeHand(length,width,mat,z){
+    const shape=new THREE.Shape();
+    shape.moveTo(-width/2,0);
+    shape.lineTo(-width*0.08,length*0.8);
+    shape.lineTo(width*0.08,length*0.8);
+    shape.lineTo(width/2,0);
+    shape.lineTo(width*0.1,-length*0.2);
+    shape.lineTo(-width*0.1,-length*0.2);
+    shape.closePath();
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:0.008,bevelEnabled:true,bevelThickness:0.005,bevelSize:0.005,bevelSegments:2});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.z=z;
+    // Lume tip
+    const tip=new THREE.Mesh(new THREE.PlaneGeometry(width*0.5,length*0.15),M.goldLume);
+    tip.position.y=length*0.7;tip.position.z=z+0.005;
+    const g=new THREE.Group();
+    g.add(mesh);g.add(tip);
+    return g;
+  }
+
+  const hourHand=makeHand(0.42,0.06,new THREE.MeshPhysicalMaterial({color:0xe8c878,metalness:0.7,roughness:0.25,envMapIntensity:1.2}),0.09);
+  watch.add(hourHand);
+  const minHand=makeHand(0.62,0.045,new THREE.MeshPhysicalMaterial({color:0xf5ecd9,metalness:0.6,roughness:0.2,envMapIntensity:1.5}),0.095);
+  watch.add(minHand);
+
+  // Second hand (thin copper needle)
+  const secG=new THREE.Group();
+  const secShape=new THREE.Shape();
+  secShape.moveTo(-0.008,0);
+  secShape.lineTo(-0.003,0.6);
+  secShape.lineTo(0.003,0.6);
+  secShape.lineTo(0.008,0);
+  secShape.lineTo(0.003,-0.1);
+  secShape.lineTo(-0.003,-0.1);
+  secShape.closePath();
+  const secGeo=new THREE.ExtrudeGeometry(secShape,{depth:0.003,bevelEnabled:true,bevelThickness:0.002,bevelSize:0.002,bevelSegments:2});
+  const secMesh=new THREE.Mesh(secGeo,new THREE.MeshPhysicalMaterial({color:0xb8732d,emissive:0x8b4513,emissiveIntensity:0.15,metalness:0.5,roughness:0.3}));
+  secMesh.position.z=0.1;secG.add(secMesh);
+  // Counterweight
+  const cw=new THREE.Mesh(new THREE.CircleGeometry(0.025,16),
+    new THREE.MeshPhysicalMaterial({color:0xb8732d,metalness:0.6,roughness:0.3}));
+  cw.position.y=-0.1;cw.position.z=0.005;cw.rotation.x=-Math.PI/2;
+  secG.add(cw);
+  watch.add(secG);
+
+  // Center cap
+  const centerCap=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.04,16),M.brassBright);
+  centerCap.position.z=0.11;watch.add(centerCap);
+
+  // ── Crown ──
+  const crown=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.18,16),M.brass);
+  crown.position.set(1.28,0.3,0);crown.rotation.x=Math.PI/2;watch.add(crown);
+  for(let i=0;i<16;i++){
+    const a=(i/16)*Math.PI*2;
+    const s=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.02,0.015),M.brassDark);
+    s.position.set(1.28+Math.sin(a)*0.1,0.3+Math.cos(a)*0.1,0);s.rotation.z=a;
+    watch.add(s);
+  }
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.12,8),M.steel);
+  stem.position.set(1.2,0.3,0);stem.rotation.x=Math.PI/2;watch.add(stem);
+
+  // Side pushers
+  [-0.3,0.8].forEach(y=>{
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.045,0.1,8),M.steelDark);
+    b.position.set(1.16,y,0);b.rotation.x=Math.PI/2;watch.add(b);
+  });
+
+  // ── Glass dome ──
+  const glass=new THREE.Mesh(new THREE.SphereGeometry(1.1,32,24,0,Math.PI*2,0,Math.PI/2.3),M.glass);
+  glass.position.z=0.08;watch.add(glass);
+
+  // Edge glow
+  const edgeGlow=new THREE.Mesh(new THREE.TorusGeometry(1.05,0.006,12,48),
+    new THREE.MeshPhysicalMaterial({color:0xffd9a0,emissive:0xff8b3d,emissiveIntensity:0.1,transparent:true,opacity:0.2}));
+  edgeGlow.position.z=0.08;watch.add(edgeGlow);
+
+  // ── Steam particles ──
+  const pCount=250;
+  const pPos=new Float32Array(pCount*3);
+  const pVel=new Float32Array(pCount*3);
+  for(let i=0;i<pCount;i++){
+    pPos[i*3]=(Math.random()-0.5)*16;
+    pPos[i*3+1]=(Math.random()-0.5)*16;
+    pPos[i*3+2]=(Math.random()-0.5)*8-3;
+    pVel[i*3]=(Math.random()-0.5)*0.002;
+    pVel[i*3+1]=Math.random()*0.004+0.001;
+    pVel[i*3+2]=(Math.random()-0.5)*0.002;
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  const pMat=new THREE.PointsMaterial({size:0.03,color:0xc9a85c,transparent:true,opacity:0.18,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false});
+  const particles=new THREE.Points(pGeo,pMat);
+  scene.add(particles);
+
+  // ── Interaction ──
+  let mx=0,my=0,tx=0,ty=0,prevZ=0;
+  document.addEventListener('mousemove',e=>{
+    mx=(e.clientX/W)*2-1;
+    my=-(e.clientY/H)*2+1;
+  });
+  let zoom=6;
+  window.addEventListener('wheel',e=>{
+    e.preventDefault();
+    zoom=Math.max(3.5,Math.min(11,zoom+e.deltaY*0.004));
+  },{passive:false});
+  // Touch
+  let td=0;
+  window.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      td=Math.sqrt(dx*dx+dy*dy);
+    }
+  },{passive:true});
+  window.addEventListener('touchmove',e=>{
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      zoom=Math.max(3.5,Math.min(11,zoom+(td-d)*0.02));
+      td=d;
+    }else if(e.touches.length===1){
+      mx=(e.touches[0].clientX/W)*2-1;
+      my=-(e.touches[0].clientY/H)*2+1;
+    }
+  },{passive:true});
+
+  window.addEventListener('resize',()=>{
+    W=window.innerWidth;H=window.innerHeight;
+    camera.aspect=W/H;camera.updateProjectionMatrix();
+    renderer.setSize(W,H);
+  });
+
+  // ── Animate ──
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt=1/60;t+=dt;
+
+    camera.position.z+=(zoom-camera.position.z)*0.05;
+
+    tx=my*0.18;ty=mx*0.22;
+    watch.rotation.x+=(tx-watch.rotation.x)*0.035;
+    watch.rotation.y+=(ty-watch.rotation.y)*0.035;
+
+    // Float
+    watch.position.y=Math.sin(t*0.9)*0.06;
+
+    // Gears
+    gears.forEach(g=>{g.m.rotation.z+=dt*g.s});
+
+    // Hands — real time
+    secG.rotation.z=t*1.5;
+    minHand.rotation.z=t*0.025;
+    hourHand.rotation.z=t*0.002083;
+
+    // Steam particles
+    const positions=pGeo.attributes.position.array;
+    for(let i=0;i<pCount;i++){
+      positions[i*3]+=pVel[i*3];
+      positions[i*3+1]+=pVel[i*3+1];
+      positions[i*3+2]+=pVel[i*3+2];
+      if(positions[i*3+1]>8){
+        positions[i*3+1]=-8;
+        positions[i*3]=(Math.random()-0.5)*16;
+      }
+    }
+    pGeo.attributes.position.needsUpdate=true;
+
+    // Glass shimmer
+    M.glass.opacity=0.05+Math.sin(t*0.6)*0.035;
+
+    // Spark flicker
+    spark.intensity=0.6+Math.sin(t*8)*0.2;
+
+    renderer.render(scene,camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
