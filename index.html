@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Big Pickle Watch — Precision engineered for the next generation</title>
+  <meta name="description" content="Big Pickle Watch. Precision engineered for the next generation. Micro-LED display. Titanium case. Neural engine." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ===== RESET ===== */
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      background:#0a0a0a;color:#f0f0f0;
+      font-family:'Inter','SF Pro Display',system-ui,sans-serif;
+      overflow-x:hidden;-webkit-font-smoothing:antialiased
+    }
+    ::selection{background:rgba(74,143,231,0.3);color:#fff}
+    a{text-decoration:none;color:inherit}
+    img{display:block}
+
+    /* ===== LOADING ===== */
+    #loading{
+      position:fixed;inset:0;z-index:1000;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:#0a0a0a;transition:opacity .8s,transform .8s
+    }
+    #loading.hidden{opacity:0;transform:scale(1.05);pointer-events:none}
+    #loading-title{font-size:2rem;font-weight:200;letter-spacing:.3em;color:rgba(255,255,255,.7)}
+    #loading-bar-wrap{width:12rem;height:1px;background:rgba(255,255,255,.08);margin:2rem auto 0;overflow:hidden}
+    #loading-bar{height:100%;width:0;background:linear-gradient(90deg,#4a8fe7,#d4a574,#4a8fe7);transition:width .1s}
+    #loading-label{margin-top:.75rem;font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.2)}
+
+    /* ===== NAV ===== */
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:100;
+      padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
+      transition:background .5s,backdrop-filter .5s
+    }
+    nav.scrolled{background:rgba(10,10,10,.8);backdrop-filter:blur(20px)}
+    nav .logo{font-size:.75rem;letter-spacing:.3em;font-weight:200;color:rgba(255,255,255,.6);transition:color .3s}
+    nav .logo:hover{color:rgba(255,255,255,.9)}
+    nav .links{display:none;gap:2rem}
+    @media(min-width:768px){nav .links{display:flex}}
+    nav .links a{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.35);transition:color .3s}
+    nav .links a:hover{color:rgba(255,255,255,.8)}
+    .nav-progress{position:absolute;bottom:0;left:0;right:0;height:1px;background:rgba(255,255,255,.03)}
+    .nav-progress-inner{height:100%;width:0;background:linear-gradient(90deg,#4a8fe7,#d4a574);transition:width .1s}
+    .menu-btn{display:flex;flex-direction:column;gap:4px;padding:8px;background:none;border:none;cursor:pointer}
+    @media(min-width:768px){.menu-btn{display:none}}
+    .menu-btn span{display:block;width:18px;height:1px;background:rgba(255,255,255,.6);transition:transform .3s,opacity .3s}
+    .menu-btn.active span:nth-child(1){transform:rotate(45deg) translateY(4px)}
+    .menu-btn.active span:nth-child(2){opacity:0}
+    .menu-btn.active span:nth-child(3){transform:rotate(-45deg) translateY(-4px)}
+    #mobile-menu{
+      position:fixed;inset:0;z-index:90;
+      display:none;align-items:center;justify-content:center;
+      background:rgba(10,10,10,.96);backdrop-filter:blur(40px)
+    }
+    #mobile-menu.open{display:flex}
+    #mobile-menu a{
+      font-size:1.5rem;letter-spacing:.2em;text-transform:uppercase;
+      color:rgba(255,255,255,.5);transition:color .3s;margin:.75rem 0
+    }
+    #mobile-menu a:hover{color:rgba(255,255,255,.9)}
+
+    /* ===== 3D CANVAS ===== */
+    #three-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+    /* ===== SECTIONS ===== */
+    section{position:relative;z-index:5;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1.5rem}
+    .section-inner{max-width:72rem;width:100%}
+    .label{font-size:.65rem;letter-spacing:.35em;text-transform:uppercase;color:rgba(74,143,231,.5);margin-bottom:1rem;text-align:center;opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
+    .label.visible{opacity:1;transform:translateY(0)}
+    .section-title{font-size:clamp(1.5rem,4vw,2.75rem);font-weight:200;color:rgba(255,255,255,.85);text-align:center;margin-bottom:2rem;opacity:0;transform:translateY(20px);transition:opacity .8s,transform .8s}
+    .section-title.visible{opacity:1;transform:translateY(0)}
+
+    /* ===== HERO ===== */
+    #hero{pointer-events:none}
+    #hero *{pointer-events:auto}
+    #hero-content{text-align:center;max-width:64rem;opacity:0;transform:translateY(30px);transition:opacity 1s,transform 1s}
+    #hero-content.visible{opacity:1;transform:translateY(0)}
+    .hero-intro{font-size:.65rem;letter-spacing:.35em;text-transform:uppercase;color:rgba(74,143,231,.5);margin-bottom:1.5rem}
+    .hero-title{font-size:clamp(2.5rem,8vw,6rem);font-weight:100;color:#fff;margin-bottom:.5rem}
+    .hero-title span{display:block;font-size:clamp(1.25rem,3vw,2.5rem);font-weight:200;letter-spacing:.2em;color:rgba(176,176,176,.5);margin-top:.5rem}
+    .hero-sub{font-size:clamp(.85rem,1.5vw,1.1rem);font-weight:200;color:rgba(138,138,138,.6);max-width:28rem;margin:0 auto 3rem;line-height:1.6}
+    .hero-cta{
+      display:inline-flex;align-items:center;gap:.75rem;
+      padding:.75rem 2.5rem;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;
+      color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.08);border-radius:999px;
+      background:rgba(255,255,255,.03);backdrop-filter:blur(8px);
+      transition:all .5s;position:relative;overflow:hidden
+    }
+    .hero-cta:hover{border-color:rgba(74,143,231,.4);color:#fff}
+    .hero-cta .arrow{width:12px;height:12px;border-right:1.5px solid rgba(255,255,255,.4);border-bottom:1.5px solid rgba(255,255,255,.4);transform:rotate(-45deg);transition:transform .3s}
+    .hero-cta:hover .arrow{transform:rotate(-45deg) translate(3px,3px)}
+    .hero-cta .glow{position:absolute;inset:0;border-radius:999px;background:linear-gradient(135deg,rgba(74,143,231,.1),rgba(212,165,116,.1));opacity:0;transition:opacity .5s}
+    .hero-cta:hover .glow{opacity:1}
+    .scroll-indicator{
+      position:absolute;bottom:3rem;left:50%;transform:translateX(-50%);
+      opacity:0;transition:opacity 1s
+    }
+    .scroll-indicator.visible{opacity:1}
+    .scroll-ring{width:2rem;height:3rem;border:1px solid rgba(255,255,255,.08);border-radius:999px;display:flex;justify-content:center;padding:4px;animation:pulse 2s infinite}
+    .scroll-dot{width:4px;height:8px;background:rgba(74,143,231,.4);border-radius:999px;animation:scrollBounce 1.5s infinite}
+    @keyframes scrollBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+    @keyframes pulse{0%,100%{opacity:.3}50%{opacity:.8}}
+
+    /* ===== STORY ===== */
+    .story-grid{display:grid;grid-template-columns:1fr;gap:2rem;margin-top:3rem}
+    @media(min-width:768px){.story-grid{grid-template-columns:repeat(3,1fr)}}
+    .story-card{
+      position:relative;padding:2rem;border-radius:1rem;
+      border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.015);
+      backdrop-filter:blur(8px);overflow:hidden;
+      opacity:0;transform:translateY(30px);transition:opacity .8s,transform .8s,border-color .3s
+    }
+    .story-card.visible{opacity:1;transform:translateY(0)}
+    .story-card:hover{border-color:rgba(74,143,231,.12)}
+    .story-card .bg-grad{position:absolute;inset:0;opacity:.15;transition:opacity .5s;border-radius:1rem}
+    .story-card:hover .bg-grad{opacity:.35}
+    .story-card .num{font-size:2rem;font-weight:100;color:rgba(255,255,255,.06);margin-bottom:1rem}
+    .story-card h3{font-size:1.05rem;font-weight:400;color:rgba(255,255,255,.75);margin-bottom:.75rem;letter-spacing:.02em}
+    .story-card p{font-size:.825rem;font-weight:200;color:rgba(138,138,138,.55);line-height:1.7}
+
+    /* ===== FEATURES ===== */
+    .features-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin-top:3rem}
+    @media(min-width:768px){.features-grid{grid-template-columns:repeat(2,1fr)}}
+    .feature-card{
+      position:relative;padding:2rem;border-radius:1rem;
+      border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.015);
+      backdrop-filter:blur(8px);overflow:hidden;
+      opacity:0;transform:translateY(20px);transition:opacity .7s,transform .7s,border-color .3s
+    }
+    .feature-card.visible{opacity:1;transform:translateY(0)}
+    .feature-card:hover{border-color:rgba(74,143,231,.1)}
+    .feature-card .bg-grad{position:absolute;inset:0;opacity:.2;transition:opacity .5s;border-radius:1rem}
+    .feature-card:hover .bg-grad{opacity:.4}
+    .feature-card .icon{width:2rem;height:2rem;margin-bottom:1rem;opacity:.6;transition:opacity .3s}
+    .feature-card:hover .icon{opacity:1}
+    .feature-card h3{font-size:1.1rem;font-weight:400;color:rgba(255,255,255,.75);margin-bottom:.5rem}
+    .feature-card p{font-size:.825rem;font-weight:200;color:rgba(138,138,138,.5);line-height:1.7}
+    .feature-card.hero-feature{grid-column:span 1}
+    @media(min-width:768px){.feature-card.hero-feature{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}}
+    .feature-ai-visual{aspect-ratio:1;border-radius:.75rem;border:1px solid rgba(255,255,255,.04);background:linear-gradient(135deg,rgba(74,143,231,.04),rgba(212,165,116,.04));display:flex;align-items:center;justify-content:center;padding:2rem;margin-top:1.5rem}
+    @media(min-width:768px){.feature-ai-visual{margin-top:0}}
+    .feature-ai-visual .ai-label{font-size:2.5rem;font-weight:100;color:rgba(74,143,231,.2);margin-bottom:.5rem}
+    .feature-ai-visual .ai-sub{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.2)}
+
+    /* ===== TECH SPECS ===== */
+    .specs-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin-top:3rem}
+    @media(min-width:640px){.specs-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:1024px){.specs-grid{grid-template-columns:repeat(3,1fr)}}
+    .spec-group{
+      padding:1.5rem;border-radius:1rem;
+      border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.015);
+      backdrop-filter:blur(8px);
+      opacity:0;transform:translateY(20px);transition:opacity .7s,transform .7s
+    }
+    .spec-group.visible{opacity:1;transform:translateY(0)}
+    .spec-group h3{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:rgba(74,143,231,.35);margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.04)}
+    .spec-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;gap:1rem}
+    .spec-row dt{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(138,138,138,.35)}
+    .spec-row dd{font-size:.8rem;font-weight:200;color:rgba(255,255,255,.6);text-align:right}
+
+    /* ===== FINAL CTA ===== */
+    #cta{text-align:center}
+    #cta-content{opacity:0;transform:scale(.96);transition:opacity 1s,transform 1s}
+    #cta-content.visible{opacity:1;transform:scale(1)}
+    #cta h2{font-size:clamp(1.75rem,5vw,3.5rem);font-weight:100;color:rgba(255,255,255,.85);margin-bottom:1rem;line-height:1.2}
+    #cta .gradient-text{background:linear-gradient(135deg,#4a8fe7,#d4a574,#4a8fe7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    #cta p{font-size:.95rem;font-weight:200;color:rgba(138,138,138,.5);margin-bottom:2.5rem}
+    .cta-buttons{display:flex;flex-direction:column;align-items:center;gap:1rem}
+    @media(min-width:480px){.cta-buttons{flex-direction:row;justify-content:center}}
+    .btn-primary{
+      padding:.85rem 2.5rem;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;
+      color:#fff;background:linear-gradient(135deg,#4a8fe7,#2563eb);border:none;border-radius:999px;
+      cursor:pointer;transition:all .4s;box-shadow:0 4px 24px rgba(74,143,231,.2)
+    }
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(74,143,231,.35)}
+    .btn-secondary{
+      padding:.85rem 2.5rem;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;
+      color:rgba(255,255,255,.5);background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:999px;
+      cursor:pointer;transition:all .3s
+    }
+    .btn-secondary:hover{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.15)}
+    .cta-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;max-width:20rem;margin:3rem auto 0;opacity:0;transition:opacity .8s}
+    .cta-stats.visible{opacity:1}
+    .cta-stat .value{font-size:1.25rem;font-weight:200;color:rgba(255,255,255,.7)}
+    .cta-stat .label{font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.15);margin-top:.25rem}
+
+    /* ===== FOOTER ===== */
+    footer{
+      position:relative;z-index:5;border-top:1px solid rgba(255,255,255,.04);
+      padding:2rem 1.5rem;text-align:center
+    }
+    footer .inner{
+      max-width:72rem;margin:0 auto;
+      display:flex;flex-direction:column;align-items:center;gap:1rem
+    }
+    @media(min-width:768px){footer .inner{flex-direction:row;justify-content:space-between}}
+    footer .brand{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.15)}
+    footer .links{display:flex;gap:2rem}
+    footer .links a{font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.15);transition:color .3s}
+    footer .links a:hover{color:rgba(255,255,255,.4)}
+    footer .copy{font-size:.55rem;color:rgba(255,255,255,.07)}
+  </style>
+</head>
+<body>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div id="loading-title">BIG PICKLE</div>
+    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    <div id="loading-label">Precision Engineering</div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="logo">BIG PICKLE</a>
+    <div class="links">
+      <a href="#story">Story</a>
+      <a href="#features">Features</a>
+      <a href="#tech">Tech Specs</a>
+      <a href="#buy">Buy</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-progress"><div class="nav-progress-inner" id="navProgress"></div></div>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div id="mobile-menu">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+      <a href="#story" onclick="closeMenu()">Story</a>
+      <a href="#features" onclick="closeMenu()">Features</a>
+      <a href="#tech" onclick="closeMenu()">Tech Specs</a>
+      <a href="#buy" onclick="closeMenu()">Buy</a>
+    </div>
+  </div>
+
+  <!-- 3D CANVAS -->
+  <div id="three-canvas"></div>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div id="hero-content">
+      <p class="hero-intro">Introducing</p>
+      <h1 class="hero-title">Big Pickle<span>Watch</span></h1>
+      <p class="hero-sub">Precision engineered for the next generation</p>
+      <a href="#story" class="hero-cta">
+        <span class="glow"></span>
+        <span>Discover the future</span>
+        <span class="arrow"></span>
+      </a>
+    </div>
+    <div class="scroll-indicator" id="scrollInd">
+      <div class="scroll-ring"><div class="scroll-dot"></div></div>
+    </div>
+  </section>
+
+  <!-- STORYTELLING -->
+  <section id="story">
+    <div class="section-inner">
+      <p class="label" data-reveal>The Story</p>
+      <h2 class="section-title" data-reveal>Born from obsession</h2>
+      <div class="story-grid">
+        <div class="story-card" data-reveal>
+          <div class="bg-grad" style="background:linear-gradient(180deg,rgba(74,143,231,.12),transparent)"></div>
+          <div class="num">01</div>
+          <h3>Why Big Pickle</h3>
+          <p>In a world of disposable technology, Big Pickle was born from a singular obsession — to create the most advanced timepiece ever worn. Not a smartwatch. Not a traditional watch. Something entirely new.</p>
+        </div>
+        <div class="story-card" data-reveal style="transition-delay:.15s">
+          <div class="bg-grad" style="background:linear-gradient(180deg,rgba(212,165,116,.08),transparent)"></div>
+          <div class="num">02</div>
+          <h3>The Design</h3>
+          <p>Every curve, every line, every material has been scrutinized at the molecular level. The case is precision-milled from Grade&nbsp;5 titanium. The crystal is forged from sapphire. The result is architecture on your wrist.</p>
+        </div>
+        <div class="story-card" data-reveal style="transition-delay:.3s">
+          <div class="bg-grad" style="background:linear-gradient(180deg,rgba(74,143,231,.08),transparent)"></div>
+          <div class="num">03</div>
+          <h3>The Technology</h3>
+          <p>Under the hood, a custom neural engine processes millions of data points per second. An AI that learns your body, your schedule, your world. Not a companion — an extension of your consciousness.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-inner">
+      <p class="label" data-reveal>Features</p>
+      <h2 class="section-title" data-reveal>Engineered beyond time</h2>
+      <div class="features-grid">
+        <!-- AI -->
+        <div class="feature-card hero-feature" data-reveal>
+          <div class="bg-grad" style="background:linear-gradient(135deg,rgba(74,143,231,.12),transparent)"></div>
+          <div>
+            <svg class="icon" style="color:#4a8fe7" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 2V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 26V30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 16H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M26 16H30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <h3>AI Assistant</h3>
+            <p>A neural engine that anticipates your needs. It learns your routines, optimizes your day, and evolves with every interaction.</p>
+          </div>
+          <div class="feature-ai-visual">
+            <div><div class="ai-label">AI</div><div class="ai-sub">Neural Processing Unit</div></div>
+          </div>
+        </div>
+        <!-- Health -->
+        <div class="feature-card" data-reveal style="transition-delay:.1s">
+          <div class="bg-grad" style="background:linear-gradient(135deg,rgba(52,211,153,.12),transparent)"></div>
+          <svg class="icon" style="color:#34d399" viewBox="0 0 32 32" fill="none"><path d="M16 4C9.373 4 4 9.373 4 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 28C22.627 28 28 22.627 28 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 8V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 20V24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M20 16H24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <h3>Health Monitoring</h3>
+          <p>Real-time biometric tracking with clinical-grade accuracy. ECG, blood oxygen, stress levels, and sleep architecture analysis.</p>
+        </div>
+        <!-- Battery -->
+        <div class="feature-card" data-reveal style="transition-delay:.2s">
+          <div class="bg-grad" style="background:linear-gradient(135deg,rgba(251,191,36,.12),transparent)"></div>
+          <svg class="icon" style="color:#fbbf24" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M12 26V28H20V26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 14V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 17H19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 4L10 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M24 4L22 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <h3>Ultra Battery</h3>
+          <p>Up to 14 days of typical use. A new generation of solid-state battery technology that recharges to 80% in 18 minutes.</p>
+        </div>
+        <!-- Display -->
+        <div class="feature-card" data-reveal style="transition-delay:.3s">
+          <div class="bg-grad" style="background:linear-gradient(135deg,rgba(139,92,246,.12),transparent)"></div>
+          <svg class="icon" style="color:#8b5cf6" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/><rect x="6" y="8" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M16 8V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 22V24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 16H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M22 16H24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <h3>Adaptive Display</h3>
+          <p>A micro-LED display that dynamically adjusts resolution and refresh rate. Always-on, always readable, always beautiful.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH SPECS -->
+  <section id="tech">
+    <div class="section-inner">
+      <p class="label" data-reveal>Technical Specifications</p>
+      <h2 class="section-title" data-reveal>What lies within</h2>
+      <div class="specs-grid">
+        <div class="spec-group" data-reveal>
+          <h3>Display</h3>
+          <dl><div class="spec-row"><dt>Type</dt><dd>Micro-LED Adaptive</dd></div><div class="spec-row"><dt>Size</dt><dd>1.92" circular</dd></div><div class="spec-row"><dt>Resolution</dt><dd>502 × 502 px</dd></div><div class="spec-row"><dt>Refresh</dt><dd>1 – 120 Hz dynamic</dd></div><div class="spec-row"><dt>Protection</dt><dd>Sapphire crystal</dd></div></dl>
+        </div>
+        <div class="spec-group" data-reveal style="transition-delay:.08s">
+          <h3>Processor</h3>
+          <dl><div class="spec-row"><dt>SoC</dt><dd>Aether X2 Neural</dd></div><div class="spec-row"><dt>Arch</dt><dd>3 nm, 16-core</dd></div><div class="spec-row"><dt>NPU</dt><dd>32 TOPS</dd></div><div class="spec-row"><dt>RAM</dt><dd>8 GB LPDDR6</dd></div><div class="spec-row"><dt>Storage</dt><dd>128 GB</dd></div></dl>
+        </div>
+        <div class="spec-group" data-reveal style="transition-delay:.16s">
+          <h3>Materials</h3>
+          <dl><div class="spec-row"><dt>Case</dt><dd>Grade 5 Titanium</dd></div><div class="spec-row"><dt>Finish</dt><dd>Bead-blasted / mirror</dd></div><div class="spec-row"><dt>Crystal</dt><dd>Sapphire / DLC</dd></div><div class="spec-row"><dt>Strap</dt><dd>Fluoroelastomer / Ti</dd></div><div class="spec-row"><dt>Weight</dt><dd>48 g (no strap)</dd></div></dl>
+        </div>
+        <div class="spec-group" data-reveal style="transition-delay:.24s">
+          <h3>Battery</h3>
+          <dl><div class="spec-row"><dt>Capacity</dt><dd>520 mAh solid-state</dd></div><div class="spec-row"><dt>Life (typical)</dt><dd>14 days</dd></div><div class="spec-row"><dt>Life (AoD)</dt><dd>5 days</dd></div><div class="spec-row"><dt>0→80%</dt><dd>18 min</dd></div><div class="spec-row"><dt>0→100%</dt><dd>32 min</dd></div></dl>
+        </div>
+        <div class="spec-group" data-reveal style="transition-delay:.32s">
+          <h3>Sensors</h3>
+          <dl><div class="spec-row"><dt>Health</dt><dd>ECG, PPG, SpO₂, temp</dd></div><div class="spec-row"><dt>Motion</dt><dd>6-axis IMU + baro</dd></div><div class="spec-row"><dt>Positioning</dt><dd>GPS L1+L5 / GLONASS</dd></div><div class="spec-row"><dt>Environment</dt><dd>Depth gauge, compass</dd></div><div class="spec-row"><dt>Audio</dt><dd>MEMS mic + speaker</dd></div></dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section id="buy">
+    <div id="cta-content">
+      <p class="label" data-reveal style="text-align:center">Available Now</p>
+      <h2 data-reveal>The future is <br><span class="gradient-text">on your wrist</span></h2>
+      <p data-reveal>From $999. Free engraving. Free shipping.<br>Two-year warranty included.</p>
+      <div class="cta-buttons" data-reveal>
+        <button class="btn-primary">Pre-order now →</button>
+        <button class="btn-secondary">Watch the film ▶</button>
+      </div>
+      <div class="cta-stats" id="ctaStats">
+        <div class="cta-stat"><div class="value">14d</div><div class="label">Battery</div></div>
+        <div class="cta-stat"><div class="value">3nm</div><div class="label">Processor</div></div>
+        <div class="cta-stat"><div class="value">Ti</div><div class="label">Titanium</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="inner">
+      <div class="brand">Big Pickle Watch</div>
+      <div class="links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Support</a>
+      </div>
+      <div class="copy">© 2026 Big Pickle. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    // =======================================================
+    //  1. LOADING SCREEN
+    // =======================================================
+    (function loading() {
+      const bar = document.getElementById('loading-bar');
+      const wrap = document.getElementById('loading');
+      let frame = 0, total = 90;
+      function tick() {
+        frame++;
+        const pct = Math.min(frame / total, 1);
+        bar.style.width = (pct * 100) + '%';
+        if (frame >= total) {
+          setTimeout(() => wrap.classList.add('hidden'), 300);
+          return;
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    })();
+
+    // =======================================================
+    //  2. THREE.JS — 3D WATCH
+    // =======================================================
+    (function threeWatch() {
+      const container = document.getElementById('three-canvas');
+      if (!container) return;
+
+      const W = window.innerWidth, H = window.innerHeight;
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0a);
+
+      const camera = new THREE.PerspectiveCamera(35, W / H, 0.1, 20);
+      camera.position.set(0, 0, 5.5);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+
+      // --- Lights ---
+      const ambient = new THREE.AmbientLight(0x404060, 0.3);
+      scene.add(ambient);
+      const dir1 = new THREE.DirectionalLight(0xffffff, 2);
+      dir1.position.set(5, 5, 10);
+      scene.add(dir1);
+      const dir2 = new THREE.DirectionalLight(0x4a8fe7, 0.6);
+      dir2.position.set(-5, -3, 5);
+      scene.add(dir2);
+      const dir3 = new THREE.DirectionalLight(0xd4a574, 0.4);
+      dir3.position.set(0, 8, -5);
+      scene.add(dir3);
+      const point = new THREE.PointLight(0x4a8fe7, 0.3, 10);
+      point.position.set(0, 0, 4);
+      scene.add(point);
+
+      // --- Watch Group ---
+      const watch = new THREE.Group();
+      scene.add(watch);
+
+      // Materials
+      const caseMat = new THREE.MeshPhysicalMaterial({
+        color: 0x1a1a2e, metalness: 0.85, roughness: 0.15,
+        envMapIntensity: 2, clearcoat: 0.3
+      });
+      const bezelMat = new THREE.MeshPhysicalMaterial({
+        color: 0x8a8a8a, metalness: 0.9, roughness: 0.1, envMapIntensity: 2.5
+      });
+      const strapMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0d0d1a, metalness: 0.4, roughness: 0.7, envMapIntensity: 0.5
+      });
+      const goldMat = new THREE.MeshPhysicalMaterial({
+        color: 0xd4a574, metalness: 0.7, roughness: 0.2, envMapIntensity: 2
+      });
+      const dialMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0a0a14, metalness: 0.6, roughness: 0.3, envMapIntensity: 1
+      });
+      const markerMat = new THREE.MeshPhysicalMaterial({
+        color: 0xe0e0f0, metalness: 0.3, roughness: 0.4,
+        emissive: 0x4a8fe7, emissiveIntensity: 0.15
+      });
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x4a8fe7, metalness: 0, roughness: 0,
+        transparent: true, opacity: 0.12,
+        envMapIntensity: 1.5, side: THREE.DoubleSide, depthWrite: false
+      });
+
+      // Helper: round box
+      function roundBox(w, h, d, r, mat) {
+        const shape = new THREE.Shape();
+        const segments = 8;
+        shape.moveTo(-w/2+r, -h/2);
+        shape.lineTo(w/2-r, -h/2);
+        shape.quadraticCurveTo(w/2, -h/2, w/2, -h/2+r);
+        shape.lineTo(w/2, h/2-r);
+        shape.quadraticCurveTo(w/2, h/2, w/2-r, h/2);
+        shape.lineTo(-w/2+r, h/2);
+        shape.quadraticCurveTo(-w/2, h/2, -w/2, h/2-r);
+        shape.lineTo(-w/2, -h/2+r);
+        shape.quadraticCurveTo(-w/2, -h/2, -w/2+r, -h/2);
+        const extrudeSettings = { depth: d, bevelEnabled: true, bevelThickness: r*0.3, bevelSize: r*0.3, bevelSegments: 4 };
+        const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        geo.translate(0, 0, -d/2);
+        return new THREE.Mesh(geo, mat);
+      }
+
+      // Strap
+      const strapGeo = new THREE.BoxGeometry(1.2, 1.4, 0.15);
+      const strapTop = new THREE.Mesh(strapGeo, strapMat);
+      strapTop.position.y = 1.3;
+      watch.add(strapTop);
+      const strapBot = new THREE.Mesh(strapGeo, strapMat);
+      strapBot.position.y = -1.3;
+      watch.add(strapBot);
+
+      // Connectors
+      const conGeo = new THREE.BoxGeometry(1.1, 0.12, 0.18);
+      const con1 = new THREE.Mesh(conGeo, caseMat);
+      con1.position.y = 0.75;
+      watch.add(con1);
+      const con2 = new THREE.Mesh(conGeo, caseMat);
+      con2.position.y = -0.75;
+      watch.add(con2);
+
+      // Case body
+      const body = roundBox(2.2, 2.6, 0.6, 0.22, caseMat);
+      watch.add(body);
+
+      // Bezel ring
+      const bezelGeo = new THREE.TorusGeometry(1.05, 0.06, 24, 48);
+      const bezel = new THREE.Mesh(bezelGeo, bezelMat);
+      bezel.position.z = 0.32;
+      watch.add(bezel);
+
+      // Dial
+      const dialGeo = new THREE.CircleGeometry(0.95, 48);
+      const dial = new THREE.Mesh(dialGeo, dialMat);
+      dial.position.z = 0.35;
+      watch.add(dial);
+
+      // Inner ring
+      const ringGeo = new THREE.RingGeometry(0.85, 0.95, 48);
+      const ringMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a3e, metalness: 0.5, roughness: 0.3 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.z = 0.36;
+      watch.add(ring);
+
+      // Hour markers
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const isMain = [0, 3, 6, 9].includes(i);
+        const len = isMain ? 0.22 : 0.14;
+        const wd = isMain ? 0.035 : 0.025;
+        const mGeo = new THREE.PlaneGeometry(wd, len);
+        const mMesh = new THREE.Mesh(mGeo, markerMat);
+        mMesh.position.set(Math.sin(angle) * 0.78, Math.cos(angle) * 0.78, 0.37);
+        mMesh.rotation.z = -angle;
+        watch.add(mMesh);
+      }
+
+      // Hands
+      function hand(l, w, c, z) {
+        const g = new THREE.PlaneGeometry(w, l);
+        const m = new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.6, roughness: 0.2 });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.z = z;
+        return mesh;
+      }
+      const hourHand = hand(0.45, 0.04, 0xe0e0f0, 0.37);
+      hourHand.rotation.z = -0.5;
+      hourHand.position.set(0, 0.25, 0.37);
+      watch.add(hourHand);
+
+      const minHand = hand(0.6, 0.035, 0xd4d4e8, 0.37);
+      minHand.rotation.z = -1.2;
+      minHand.position.set(0.15, -0.1, 0.37);
+      watch.add(minHand);
+
+      const secMat = new THREE.MeshPhysicalMaterial({
+        color: 0x4a8fe7, emissive: 0x4a8fe7, emissiveIntensity: 0.3,
+        metalness: 0.5, roughness: 0.3
+      });
+      const secGeo = new THREE.PlaneGeometry(0.015, 0.55);
+      const secHand = new THREE.Mesh(secGeo, secMat);
+      secHand.rotation.z = 2.8;
+      secHand.position.set(-0.08, -0.05, 0.38);
+      watch.add(secHand);
+
+      // Center cap
+      const capGeo = new THREE.CircleGeometry(0.035, 16);
+      const cap = new THREE.Mesh(capGeo, goldMat);
+      cap.position.z = 0.38;
+      watch.add(cap);
+
+      // Crown
+      const crownGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.25, 16);
+      const crown = new THREE.Mesh(crownGeo, bezelMat);
+      crown.rotation.z = Math.PI / 2;
+      crown.position.set(1.2, 0.3, 0);
+      watch.add(crown);
+      const crownCap = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16), goldMat);
+      crownCap.rotation.z = Math.PI / 2;
+      crownCap.position.set(1.2, 0.3, 0);
+      watch.add(crownCap);
+
+      // Buttons
+      function btn(y, zOff) {
+        const g = new THREE.CylinderGeometry(0.04, 0.04, 0.12, 12);
+        const m = new THREE.Mesh(g, bezelMat);
+        m.rotation.z = Math.PI / 2;
+        m.position.set(1.15, y, zOff);
+        watch.add(m);
+      }
+      btn(-0.2, 0.15);
+      btn(0.8, -0.15);
+
+      // Glass
+      const glassGeo = new THREE.SphereGeometry(1.0, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2.5);
+      const glass = new THREE.Mesh(glassGeo, glassMat);
+      glass.position.z = 0.36;
+      watch.add(glass);
+
+      // Glass edge glow
+      const edgeGeo = new THREE.TorusGeometry(1.0, 0.01, 16, 48);
+      const edgeMat = new THREE.MeshPhysicalMaterial({
+        color: 0x4a8fe7, emissive: 0x4a8fe7, emissiveIntensity: 0.2,
+        transparent: true, opacity: 0.3
+      });
+      const edge = new THREE.Mesh(edgeGeo, edgeMat);
+      edge.position.z = 0.36;
+      watch.add(edge);
+
+      // --- Particles ---
+      const pCount = 300;
+      const pPos = new Float32Array(pCount * 3);
+      for (let i = 0; i < pCount; i++) {
+        pPos[i*3] = (Math.random() - 0.5) * 20;
+        pPos[i*3+1] = (Math.random() - 0.5) * 20;
+        pPos[i*3+2] = (Math.random() - 0.5) * 10 - 5;
+      }
+      const pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({
+        size: 0.03, color: 0x4a8fe7, transparent: true, opacity: 0.4,
+        sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      const particles = new THREE.Points(pGeo, pMat);
+      scene.add(particles);
+
+      // --- Mouse tracking ---
+      let mouseX = 0, mouseY = 0;
+      document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / W) * 2 - 1;
+        mouseY = -(e.clientY / H) * 2 + 1;
+      });
+
+      // --- Resize ---
+      window.addEventListener('resize', () => {
+        const w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+
+      // --- Float offset ---
+      let floatY = 0, floatT = 0;
+
+      // --- Animate ---
+      function animate() {
+        requestAnimationFrame(animate);
+        const dt = 1/60;
+        floatT += dt;
+
+        // Auto-rotate
+        watch.rotation.y += dt * 0.3;
+
+        // Mouse follow
+        watch.rotation.x += (mouseY * 0.15 - watch.rotation.x) * 0.04;
+        watch.rotation.z += (-mouseX * 0.1 - watch.rotation.z) * 0.04;
+
+        // Float
+        floatY = Math.sin(floatT * 1.5) * 0.08;
+        watch.position.y = floatY;
+
+        // Glass shimmer
+        glassMat.opacity = 0.1 + Math.sin(Date.now() * 0.001) * 0.04;
+
+        // Particles rotation
+        particles.rotation.y += dt * 0.02;
+
+        // Second hand tick
+        secHand.rotation.z += dt * 1.2;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+    // =======================================================
+    //  3. NAV BAR
+    // =======================================================
+    (function nav() {
+      const nav = document.querySelector('nav');
+      const progress = document.getElementById('navProgress');
+      const menuBtn = document.getElementById('menuBtn');
+      const mobileMenu = document.getElementById('mobile-menu');
+
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        nav.classList.toggle('scrolled', y > 60);
+        const pct = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = (pct > 0 ? (y / pct) * 100 : 0) + '%';
+      });
+
+      menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('active');
+        mobileMenu.classList.toggle('open');
+      });
+      window.closeMenu = () => {
+        menuBtn.classList.remove('active');
+        mobileMenu.classList.remove('open');
+      };
+    })();
+
+    // =======================================================
+    //  4. SCROLL REVEAL
+    // =======================================================
+    (function reveal() {
+      const els = document.querySelectorAll('[data-reveal]');
+      const heroContent = document.getElementById('hero-content');
+      const scrollInd = document.getElementById('scrollInd');
+      const ctaContent = document.getElementById('cta-content');
+      const ctaStats = document.getElementById('ctaStats');
+
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+      els.forEach(el => obs.observe(el));
+
+      // Hero
+      setTimeout(() => { heroContent.classList.add('visible'); }, 200);
+      setTimeout(() => { scrollInd.classList.add('visible'); }, 2800);
+
+      // CTA
+      const ctaObs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            ctaContent.classList.add('visible');
+            setTimeout(() => ctaStats.classList.add('visible'), 300);
+            ctaObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      ctaObs.observe(ctaContent);
+    })();
+  </script>
+</body>
+</html>
